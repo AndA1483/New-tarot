@@ -16,8 +16,8 @@ const Header = ({
         <div className="flex items-center justify-between mb-2">
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <span className="text-2xl">🔮</span>
-            <span className="text-xl font-bold text-white">ทาโรต์</span>
+            <img src="/logo-01.png" alt="ทาโรต์ โลโก้" className="w-10 h-10" />
+            <span className="text-xl font-bold text-white">New Tarot</span>
           </div>
 
           {/* Navigation Menu */}
