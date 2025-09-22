@@ -3,8 +3,9 @@ import { getRandomCard } from "../data/tarotCards";
 import TarotCard from "./TarotCard";
 import FlippableCard from "./FlippableCard";
 import CategorySelector from "./CategorySelector";
+import Header from "./Header";
 
-const DailyReading = ({ onBack }) => {
+const DailyReading = ({ onBack, onNavigate, currentPage }) => {
   const [drawnCard, setDrawnCard] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -57,36 +58,31 @@ const DailyReading = ({ onBack }) => {
       <CategorySelector 
         onSelectCategory={handleCategorySelect}
         onBack={onBack}
+        onNavigate={onNavigate}
+        currentPage={currentPage}
       />
     );
   }
 
   return (
     <div className="min-h-screen bg-slate-800">
-      {/* Header */}
-      <header className="bg-slate-900 border-b border-slate-700">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={onBack}
-              className="text-slate-300 hover:text-white px-4 py-2 rounded-md transition-colors duration-200 text-sm font-medium"
-            >
-              ← กลับ
-            </button>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-white">🌅 ดูดวงรายวัน</h1>
-              {selectedCategory && (
-                <div className="mt-1">
-                  <span className="bg-blue-600 px-3 py-1 rounded-full text-white text-sm">
-                    {selectedCategory.icon} {selectedCategory.name}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div></div>
+      <Header 
+        title={
+          <div className="text-center">
+            <div>🌅 ดูดวงรายวัน</div>
+            {selectedCategory && (
+              <div className="mt-1">
+                <span className="bg-blue-600 px-3 py-1 rounded-full text-white text-sm">
+                  {selectedCategory.icon} {selectedCategory.name}
+                </span>
+              </div>
+            )}
           </div>
-        </div>
-      </header>
+        }
+        onBack={onBack}
+        onNavigate={onNavigate}
+        currentPage={currentPage}
+      />
 
       <div className="container mx-auto px-6 py-8">
         <div className="max-w-2xl mx-auto">

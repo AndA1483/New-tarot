@@ -1,67 +1,83 @@
-import React from 'react';
+import React from "react";
 
-const Header = ({ 
-  title, 
-  onBack, 
-  showBackButton = true, 
+const Header = ({
+  title,
+  onBack,
+  showBackButton = true,
   backButtonText = "← กลับ",
   rightButton = null,
-  isHomePage = false,
-  onNavigate = null
+  onNavigate = null,
+  currentPage = null,
 }) => {
-  if (isHomePage) {
-    return (
-      <header className="bg-slate-900 border-b border-slate-700">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <span className="text-2xl">🔮</span>
-              <span className="text-xl font-bold text-white">ทาโรต์</span>
-            </div>
+  return (
+    <header className="bg-slate-900 border-b border-slate-700">
+      <div className="container mx-auto px-6 py-4">
+        {/* Top row with logo and navigation */}
+        <div className="flex items-center justify-between mb-2">
+          {/* Logo */}
+          <div className="flex items-center space-x-3">
+            <span className="text-2xl">🔮</span>
+            <span className="text-xl font-bold text-white">ทาโรต์</span>
+          </div>
 
-            {/* Navigation Menu */}
+          {/* Navigation Menu */}
+          {onNavigate && (
             <nav className="flex space-x-1">
               <button
                 onClick={() => onNavigate("home")}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors duration-200 text-sm font-medium"
+                className={`px-4 py-2 rounded-md transition-colors duration-200 text-sm font-medium ${
+                  currentPage === "home"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-300 hover:text-white hover:bg-slate-700"
+                }`}
               >
                 หน้าแรก
               </button>
               <button
                 onClick={() => onNavigate("daily")}
-                className="text-slate-300 hover:text-white px-4 py-2 rounded-md transition-colors duration-200 text-sm font-medium"
+                className={`px-4 py-2 rounded-md transition-colors duration-200 text-sm font-medium ${
+                  currentPage === "daily"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-300 hover:text-white hover:bg-slate-700"
+                }`}
               >
                 ดูดวงรายวัน
               </button>
               <button
                 onClick={() => onNavigate("monthly")}
-                className="text-slate-300 hover:text-white px-4 py-2 rounded-md transition-colors duration-200 text-sm font-medium"
+                className={`px-4 py-2 rounded-md transition-colors duration-200 text-sm font-medium ${
+                  currentPage === "monthly"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-300 hover:text-white hover:bg-slate-700"
+                }`}
               >
                 ดูดวงรายเดือน
               </button>
               <button
                 onClick={() => onNavigate("all-cards")}
-                className="text-slate-300 hover:text-white px-4 py-2 rounded-md transition-colors duration-200 text-sm font-medium"
+                className={`px-4 py-2 rounded-md transition-colors duration-200 text-sm font-medium ${
+                  currentPage === "all-cards"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-300 hover:text-white hover:bg-slate-700"
+                }`}
               >
                 ไพ่ทั้งหมด
               </button>
               <button
                 onClick={() => onNavigate("blog")}
-                className="text-slate-300 hover:text-white px-4 py-2 rounded-md transition-colors duration-200 text-sm font-medium"
+                className={`px-4 py-2 rounded-md transition-colors duration-200 text-sm font-medium ${
+                  currentPage === "blog"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-300 hover:text-white hover:bg-slate-700"
+                }`}
               >
                 บล็อก
               </button>
             </nav>
-          </div>
+          )}
         </div>
-      </header>
-    );
-  }
 
-  return (
-    <header className="bg-slate-900 border-b border-slate-700">
-      <div className="container mx-auto px-6 py-4">
+        {/* Bottom row with back button, title, and right button */}
         <div className="flex items-center justify-between">
           {showBackButton ? (
             <button

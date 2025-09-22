@@ -3,7 +3,7 @@ import { getAllCards } from "../data/tarotCards";
 import TarotCard from "./TarotCard";
 import Header from "./Header";
 
-const AllCards = ({ onBack }) => {
+const AllCards = ({ onBack, onNavigate, currentPage }) => {
   const [selectedCard, setSelectedCard] = useState(null);
   const allCards = getAllCards();
 
@@ -15,7 +15,12 @@ const AllCards = ({ onBack }) => {
           "linear-gradient(rgba(30, 41, 59, 0.8), rgba(30, 41, 59, 0.8)), url('/bg1.jpg')",
       }}
     >
-      <Header title="📚 ความหมายไพ่ทั้งหมด" onBack={onBack} />
+      <Header 
+        title="📚 ความหมายไพ่ทั้งหมด" 
+        onBack={onBack} 
+        onNavigate={onNavigate}
+        currentPage={currentPage}
+      />
 
       <div className="container mx-auto px-6 py-8">
         <div className="max-w-6xl mx-auto">

@@ -88,7 +88,12 @@ const HomePage = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-slate-800">
-      <Header isHomePage={true} onNavigate={onNavigate} />
+      <Header 
+        title="🔮 ทาโรต์"
+        onNavigate={onNavigate} 
+        currentPage="home"
+        showBackButton={false}
+      />
 
       {/* Hero Section */}
       <main className="container mx-auto px-6 py-20">
