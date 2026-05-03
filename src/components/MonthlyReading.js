@@ -2,15 +2,26 @@ import React, { useState } from 'react';
 import { getRandomCards } from '../data/tarotCards';
 import TarotCard from './TarotCard';
 import FlippableCard from './FlippableCard';
-import CategorySelector from './CategorySelector';
 
 const MonthlyReading = ({ onBack }) => {
   const [drawnCards, setDrawnCards] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [showCategorySelector, setShowCategorySelector] = useState(true);
   const [flippedCards, setFlippedCards] = useState({});
+
+  // Spread meanings for the 10-card monthly reading
+  const spreadMeanings = [
+    "ตัวคุณเป็นเช่นไรในช่วงนี้",
+    "สิ่งที่ส่งผลต่อคุณในช่วงนี้",
+    "อนาคตจะเป็นเช่นไร (เจ้านาย/ผู้ใหญ่)",
+    "ความเป็นอยู่ในช่วงที่ผ่านมา",
+    "สิ่งที่ผ่านมาในอดีต (ลูกน้อง/บริวาร)",
+    "สิ่งที่จะเกิดขึ้นในอนาคต",
+    "แนวทางในการแก้ไขปัญหา",
+    "คนที่อยู่รอบตัว - เพื่อน ครอบครัว",
+    "ความคิดภายในใจ สิ่งที่คาดหวัง",
+    "บทสรุป"
+  ];
 
   const drawCards = () => {
     setIsDrawing(true);
@@ -22,16 +33,9 @@ const MonthlyReading = ({ onBack }) => {
     }, 1500);
   };
 
-  const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
-    setShowCategorySelector(false);
-  };
-
   const resetReading = () => {
     setDrawnCards([]);
     setCurrentCardIndex(0);
-    setSelectedCategory(null);
-    setShowCategorySelector(true);
     setFlippedCards({});
   };
 
@@ -54,16 +58,6 @@ const MonthlyReading = ({ onBack }) => {
     }
   };
 
-  // Show category selector first
-  if (showCategorySelector) {
-    return (
-      <CategorySelector 
-        onSelectCategory={handleCategorySelect}
-        onBack={onBack}
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-800">
       {/* Header */}
@@ -78,13 +72,7 @@ const MonthlyReading = ({ onBack }) => {
             </button>
             <div className="text-center">
               <h1 className="text-2xl font-bold text-white">🌙 ดูดวงรายเดือน</h1>
-              {selectedCategory && (
-                <div className="mt-1">
-                  <span className="bg-blue-600 px-3 py-1 rounded-full text-white text-sm">
-                    {selectedCategory.icon} {selectedCategory.name}
-                  </span>
-                </div>
-              )}
+              <p className="text-slate-400 text-sm mt-1">การแจกแจง 10 ใบไพ่</p>
             </div>
             <div></div>
           </div>
@@ -150,6 +138,13 @@ const MonthlyReading = ({ onBack }) => {
                       {currentCardIndex + 1}/10
                     </div>
                   </div>
+
+                  {/* Spread Meaning */}
+                  <div className="bg-blue-600 border border-blue-500 rounded-lg p-4 mb-6">
+                    <p className="text-white text-lg font-semibold">
+                      📍 {spreadMeanings[currentCardIndex]}
+                    </p>
+                  </div>
                   
                   {/* Flippable Card */}
                   <div className="mb-8">
@@ -164,7 +159,7 @@ const MonthlyReading = ({ onBack }) => {
                   {/* Show card details when flipped */}
                   {flippedCards[currentCardIndex] && (
                     <div className="mt-8 animate-fade-in">
-                      <TarotCard card={drawnCards[currentCardIndex]} category={selectedCategory?.id} />
+                      <TarotCard card={drawnCards[currentCardIndex]} category="general" />
                     </div>
                   )}
                   
@@ -207,29 +202,28 @@ const MonthlyReading = ({ onBack }) => {
                   <h3 className="text-xl font-semibold text-white mb-4 text-center">
                     ภาพรวมไพ่ทั้งหมด
                   </h3>
-                  <div className="grid grid-cols-5 gap-3 max-w-2xl mx-auto">
+                  <div className="space-y-3 max-w-2xl mx-auto">
                     {drawnCards.map((card, index) => (
-                      <div key={index} className="relative">
-                        <FlippableCard 
-                          card={card}
-                          isFlipped={flippedCards[index] || false}
-                          onFlip={() => handleCardFlip(index)}
-                          size="small"
-                        />
-                        <div className="text-center mt-2">
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            index === currentCardIndex 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-slate-600 text-slate-300'
-                          }`}>
-                            {index + 1}
-                          </span>
+                      <div key={index} className="flex items-center gap-4 p-3 bg-slate-600 rounded-lg hover:bg-slate-500 transition-colors cursor-pointer" onClick={() => setCurrentCardIndex(index)}>
+                        <div className="flex-shrink-0 w-10 h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded flex items-center justify-center text-white font-bold">
+                          {index + 1}
+                        </div>
+                        <div className="flex-grow">
+                          <p className="text-white font-semibold">{spreadMeanings[index]}</p>
+                          <p className="text-slate-300 text-sm">{card.nameTh}</p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          {flippedCards[index] ? (
+                            <span className="text-lg">✓</span>
+                          ) : (
+                            <span className="text-slate-400">🔽</span>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
                   <p className="text-slate-400 text-sm text-center mt-4">
-                    คลิกที่ไพ่เพื่อเปิดดู หรือใช้ปุ่มด้านบนเพื่อดูทีละใบ
+                    คลิกที่รายการเพื่อดูไพ่แต่ละใบ
                   </p>
                 </div>
                 
