@@ -20,15 +20,15 @@ function App() {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'daily':
-        return <DailyReading onBack={handleBack} />;
+        return <DailyReading onBack={handleBack} onNavigate={handleNavigate} currentPage="daily" />;
       case 'monthly':
-        return <MonthlyReading onBack={handleBack} />;
+        return <MonthlyReading onBack={handleBack} onNavigate={handleNavigate} currentPage="monthly" />;
       case 'all-cards':
-        return <AllCards onBack={handleBack} />;
+        return <AllCards onBack={handleBack} onNavigate={handleNavigate} currentPage="all-cards" />;
       case 'blog':
-        return <BlogPost onBack={handleBack} />;
+        return <BlogPost onBack={handleBack} onNavigate={handleNavigate} currentPage="blog" />;
       default:
-        return <HomePage onNavigate={handleNavigate} />;
+        return <HomePage onNavigate={handleNavigate} currentPage="home" />;
     }
   };
 

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Header from './Header';
 
-const BlogPost = ({ onBack }) => {
+const BlogPost = ({ onBack, onNavigate, currentPage }) => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
 
@@ -283,6 +283,8 @@ const BlogPost = ({ onBack }) => {
           title="📝 บล็อก" 
           onBack={() => setSelectedPost(null)}
           backButtonText="← กลับไปดูบทความทั้งหมด"
+          onNavigate={onNavigate}
+          currentPage={currentPage}
           rightButton={
             <button
               onClick={onBack}
@@ -356,7 +358,12 @@ const BlogPost = ({ onBack }) => {
 
   return (
     <div className="min-h-screen bg-slate-800">
-      <Header title="📝 บล็อก" onBack={onBack} />
+      <Header 
+        title="📝 บล็อก" 
+        onBack={onBack} 
+        onNavigate={onNavigate}
+        currentPage={currentPage}
+      />
 
       <div className="container mx-auto px-6 py-8">
         <div className="max-w-6xl mx-auto">
