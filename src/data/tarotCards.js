@@ -620,6 +620,7 @@ export const readingCategories = [
   },
 ];
 
+// ไพ่ทั้งหมด 78 ใบ
 export const tarotCards = [
   ...majorArcana,
   ...wands,
