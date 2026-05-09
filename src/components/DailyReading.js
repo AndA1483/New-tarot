@@ -4,6 +4,7 @@ import TarotCard from "./TarotCard";
 import FlippableCard from "./FlippableCard";
 import CategorySelector from "./CategorySelector";
 import Header from "./Header";
+import { exportDailyReadingToPDF } from "../utils/pdfExport";
 
 const DailyReading = ({ onBack, onNavigate, currentPage }) => {
   const [drawnCard, setDrawnCard] = useState(null);
@@ -14,6 +15,7 @@ const DailyReading = ({ onBack, onNavigate, currentPage }) => {
 
   const [showCardSelection, setShowCardSelection] = useState(false);
   const [availableCards, setAvailableCards] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
 
   const startCardSelection = () => {
     // Generate 5 random cards for selection
@@ -50,6 +52,22 @@ const DailyReading = ({ onBack, onNavigate, currentPage }) => {
 
   const handleCardFlip = () => {
     setIsCardFlipped(!isCardFlipped);
+  };
+
+  const handleExportPDF = async () => {
+    if (!drawnCard || !isCardFlipped) return;
+    setIsExporting(true);
+    try {
+      // ดึงความหมายจาก TarotCard component โดยใช้ category
+      const { getCardMeaning } = await import('../data/tarotCards');
+      const meaning = getCardMeaning(drawnCard, selectedCategory?.id || 'general');
+      await exportDailyReadingToPDF(drawnCard, selectedCategory, meaning);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      alert('ไม่สามารถสร้าง PDF ได้ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Show category selector first
@@ -175,12 +193,31 @@ const DailyReading = ({ onBack, onNavigate, currentPage }) => {
                   )}
                 </div>
                 
-                <button
-                  onClick={resetReading}
-                  className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
-                >
-                  🔄 สุ่มไพ่ใหม่
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    onClick={resetReading}
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+                  >
+                    🔄 สุ่มไพ่ใหม่
+                  </button>
+
+                  {isCardFlipped && (
+                    <button
+                      onClick={handleExportPDF}
+                      disabled={isExporting}
+                      className="bg-purple-600 hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2 justify-center"
+                    >
+                      {isExporting ? (
+                        <>
+                          <span className="animate-spin inline-block">⏳</span>
+                          กำลังสร้าง PDF...
+                        </>
+                      ) : (
+                        <>📄 Export PDF</>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>

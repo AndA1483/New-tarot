@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { tarotCards } from '../data/tarotCards';
 import { getPositionMeaning } from '../data/positionMeanings';
 import Header from './Header';
+import { exportMonthlyReadingToPDF } from '../utils/pdfExport';
 
 // ตำแหน่ง 10 ช่องสำหรับดูดวงรายเดือน
 const POSITION_LABELS = [
@@ -48,6 +49,7 @@ const MonthlyReading = ({ onBack, onNavigate, currentPage }) => {
   const [selectedCards, setSelectedCards] = useState([]);
   const [isShuffling, setIsShuffling] = useState(false);
   const [activeResultIndex, setActiveResultIndex] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
 
   // สับไพ่ใหม่
   const handleShuffle = useCallback(() => {
@@ -90,6 +92,19 @@ const MonthlyReading = ({ onBack, onNavigate, currentPage }) => {
     setSelectedCards([]);
     setDeck(shuffleDeck(tarotCards));
     setActiveResultIndex(0);
+  };
+
+  // Export PDF
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      await exportMonthlyReadingToPDF(selectedCards, getPositionMeaning, POSITION_LABELS);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      alert('ไม่สามารถสร้าง PDF ได้ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // ---- หน้า Loading ----
@@ -284,6 +299,20 @@ const MonthlyReading = ({ onBack, onNavigate, currentPage }) => {
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-all duration-200 hover:scale-105"
             >
               🔄 เลือกไพ่ใหม่
+            </button>
+            <button
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="bg-purple-600 hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-all duration-200 hover:scale-105 flex items-center gap-2 justify-center"
+            >
+              {isExporting ? (
+                <>
+                  <span className="animate-spin inline-block">⏳</span>
+                  กำลังสร้าง PDF...
+                </>
+              ) : (
+                <>📄 Export PDF</>
+              )}
             </button>
           </div>
         </div>

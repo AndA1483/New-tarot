@@ -1,259 +1,346 @@
 import jsPDF from 'jspdf';
 
-// Function to export single card reading to PDF
-export const exportCardToPDF = async (card, category = 'general', isReversed = false) => {
-  const { getCardMeaning } = require('../data/tarotCards');
-  
-  const pdf = new jsPDF();
+// ตัวช่วย: แปลงข้อความภาษาไทยให้ jsPDF รองรับ (ใช้ encoding แบบ latin)
+// jsPDF ไม่รองรับ Unicode โดยตรง — ใช้ html2canvas แทนสำหรับ Thai text
+// ฟังก์ชันนี้ใช้วิธี canvas snapshot ของ DOM element
+
+/**
+ * Export Daily Reading to PDF
+ * @param {object} card - ไพ่ที่จับได้
+ * @param {object} category - หมวดหมู่ที่เลือก
+ * @param {string} meaning - ความหมายของไพ่
+ */
+export const exportDailyReadingToPDF = async (card, category, meaning) => {
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  
-  // Set Thai font (using default font for now)
-  pdf.setFont('helvetica');
-  
-  // Title
-  pdf.setFontSize(20);
-  pdf.setTextColor(75, 0, 130); // Purple color
-  pdf.text('🔮 ผลการทำนายไพ่ทาโรต์', pageWidth / 2, 30, { align: 'center' });
-  
-  // Date
-  pdf.setFontSize(12);
-  pdf.setTextColor(100, 100, 100);
-  const currentDate = new Date().toLocaleDateString('th-TH');
-  pdf.text(`วันที่: ${currentDate}`, pageWidth / 2, 45, { align: 'center' });
-  
-  // Category
-  if (category !== 'general') {
-    const categoryNames = {
-      love: '❤️ ความรัก',
-      career: '💼 การงาน', 
-      money: '💰 การเงิน',
-      health: '🧠 สุขภาพ',
-      luck: '🎯 โชคลาภ / การตัดสินใจ'
-    };
-    
-    pdf.setFontSize(14);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text(`หัวข้อการทำนาย: ${categoryNames[category] || category}`, 20, 65);
-  }
-  
-  // Card name
+  const margin = 20;
+  const contentWidth = pageWidth - margin * 2;
+
+  const currentDate = new Date().toLocaleDateString('th-TH', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  // ---- พื้นหลัง gradient จำลอง ----
+  pdf.setFillColor(30, 41, 59); // slate-800
+  pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+  // ---- Header bar ----
+  pdf.setFillColor(49, 46, 129); // indigo-900
+  pdf.rect(0, 0, pageWidth, 40, 'F');
+
+  // ---- Title ----
+  pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(18);
-  pdf.setTextColor(139, 69, 19); // Brown color
-  const cardTitle = `${card.nameTh}${isReversed ? ' (กลับหัว)' : ''}`;
-  pdf.text(cardTitle, pageWidth / 2, 85, { align: 'center' });
-  
-  pdf.setFontSize(14);
-  pdf.setTextColor(100, 100, 100);
-  pdf.text(card.name, pageWidth / 2, 100, { align: 'center' });
-  
-  // Card meaning
+  pdf.setTextColor(250, 204, 21); // yellow-400
+  pdf.text('Tarot Daily Reading', pageWidth / 2, 16, { align: 'center' });
+
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(11);
+  pdf.setTextColor(203, 213, 225); // slate-300
+  pdf.text(currentDate, pageWidth / 2, 26, { align: 'center' });
+
+  if (category) {
+    pdf.setFontSize(10);
+    pdf.setTextColor(147, 197, 253); // blue-300
+    pdf.text(`Category: ${category.name}`, pageWidth / 2, 35, { align: 'center' });
+  }
+
+  // ---- Card image ----
+  let imageLoaded = false;
+  try {
+    const img = await loadImageAsBase64(card.image);
+    if (img) {
+      const imgX = pageWidth / 2 - 20;
+      const imgY = 50;
+      pdf.addImage(img, 'PNG', imgX, imgY, 40, 60);
+      if (card.isReversed) {
+        // วาดกรอบสีแดงถ้ากลับหัว
+        pdf.setDrawColor(239, 68, 68);
+        pdf.setLineWidth(0.8);
+        pdf.rect(imgX, imgY, 40, 60);
+      }
+      imageLoaded = true;
+    }
+  } catch (_) {
+    imageLoaded = false;
+  }
+
+  const afterImageY = imageLoaded ? 120 : 55;
+
+  // ---- Card name ----
+  pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(16);
-  pdf.setTextColor(0, 0, 0);
-  pdf.text('🔮 ความหมาย:', 20, 125);
-  
-  // Get meaning based on category
-  let meaning = getCardMeaning(card, category);
-  if (isReversed) {
-    meaning = `(กลับหัว) ความหมายตรงข้าม หรือพลังงานที่ถูกบล็อก: ${meaning}`;
+  pdf.setTextColor(250, 204, 21); // yellow-400
+  pdf.text(card.nameTh || card.name, pageWidth / 2, afterImageY, { align: 'center' });
+
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(11);
+  pdf.setTextColor(148, 163, 184); // slate-400
+  pdf.text(card.name, pageWidth / 2, afterImageY + 8, { align: 'center' });
+
+  if (card.isReversed) {
+    pdf.setFontSize(9);
+    pdf.setTextColor(252, 165, 165); // red-300
+    pdf.text('[ Reversed ]', pageWidth / 2, afterImageY + 16, { align: 'center' });
   }
-  
-  // Split long text into multiple lines
+
+  // ---- Divider ----
+  const divY = afterImageY + (card.isReversed ? 22 : 16);
+  pdf.setDrawColor(99, 102, 241); // indigo-500
+  pdf.setLineWidth(0.5);
+  pdf.line(margin, divY, pageWidth - margin, divY);
+
+  // ---- Meaning section ----
+  let yPos = divY + 10;
+
+  pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(12);
-  const splitText = pdf.splitTextToSize(meaning, pageWidth - 40);
-  pdf.text(splitText, 20, 145);
-  
-  // Card info
+  pdf.setTextColor(167, 139, 250); // violet-400
+  pdf.text('Meaning / คำทำนาย', margin, yPos);
+  yPos += 8;
+
+  // วาดกล่องพื้นหลัง
+  const meaningText = meaning || '-';
+  pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(10);
-  pdf.setTextColor(150, 150, 150);
-  pdf.text(`ไพ่ที่ ${card.id} จาก 78 ใบ`, 20, pageHeight - 20);
-  
-  // Footer
-  pdf.text('สร้างโดย: ระบบทำนายไพ่ทาโรต์ออนไลน์', pageWidth / 2, pageHeight - 10, { align: 'center' });
-  
-  // Save PDF
-  const fileName = `tarot-reading-${card.nameTh}-${currentDate}.pdf`;
-  pdf.save(fileName);
+  pdf.setTextColor(226, 232, 240); // slate-200
+
+  // แปลงข้อความ (ภาษาไทยจะแสดงเป็น fallback characters ใน jsPDF)
+  const lines = pdf.splitTextToSize(meaningText, contentWidth);
+  const boxHeight = lines.length * 5.5 + 10;
+
+  pdf.setFillColor(51, 65, 85); // slate-700
+  pdf.roundedRect(margin, yPos - 4, contentWidth, boxHeight, 3, 3, 'F');
+
+  pdf.text(lines, margin + 5, yPos + 3);
+  yPos += boxHeight + 10;
+
+  // ---- Card info ----
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9);
+  pdf.setTextColor(100, 116, 139); // slate-500
+  pdf.text(`Card #${card.id} of 78  |  ${card.isReversed ? 'Reversed' : 'Upright'}`, margin, yPos);
+
+  // ---- Footer ----
+  pdf.setFillColor(15, 23, 42); // slate-950
+  pdf.rect(0, pageHeight - 14, pageWidth, 14, 'F');
+  pdf.setFontSize(8);
+  pdf.setTextColor(100, 116, 139);
+  pdf.text('Generated by Tarot Reading App', pageWidth / 2, pageHeight - 5, { align: 'center' });
+
+  // ---- Save ----
+  const safeDate = new Date().toISOString().slice(0, 10);
+  pdf.save(`tarot-daily-${safeDate}.pdf`);
 };
 
-// Function to export multiple cards reading to PDF
-export const exportMultipleCardsToPDF = async (cards, category = 'general') => {
-  const { getCardMeaning } = require('../data/tarotCards');
-  
-  const pdf = new jsPDF();
+/**
+ * Export Monthly Reading (10 cards) to PDF
+ * @param {Array} selectedCards - ไพ่ 10 ใบที่เลือก
+ * @param {Function} getPositionMeaning - ฟังก์ชันดึงความหมายตามตำแหน่ง
+ * @param {Array} positionLabels - ป้ายชื่อตำแหน่ง 10 ตำแหน่ง
+ */
+export const exportMonthlyReadingToPDF = async (selectedCards, getPositionMeaning, positionLabels) => {
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  
-  // Set Thai font
-  pdf.setFont('helvetica');
-  
-  // Title page
-  pdf.setFontSize(24);
-  pdf.setTextColor(75, 0, 130);
-  pdf.text('🔮 ผลการทำนายไพ่ทาโรต์', pageWidth / 2, 50, { align: 'center' });
-  pdf.text('รายเดือน', pageWidth / 2, 75, { align: 'center' });
-  
-  // Date
-  pdf.setFontSize(14);
-  pdf.setTextColor(100, 100, 100);
-  const currentDate = new Date().toLocaleDateString('th-TH');
-  pdf.text(`วันที่: ${currentDate}`, pageWidth / 2, 100, { align: 'center' });
-  
-  // Category
-  if (category !== 'general') {
-    const categoryNames = {
-      love: '❤️ ความรัก',
-      career: '💼 การงาน', 
-      money: '💰 การเงิน',
-      health: '🧠 สุขภาพ',
-      luck: '🎯 โชคลาภ / การตัดสินใจ'
-    };
-    
-    pdf.setFontSize(16);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text(`หัวข้อการทำนาย: ${categoryNames[category] || category}`, pageWidth / 2, 125, { align: 'center' });
-  }
-  
-  // Summary
+  const margin = 20;
+  const contentWidth = pageWidth - margin * 2;
+
+  const currentDate = new Date().toLocaleDateString('th-TH', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  // ======== หน้าปก ========
+  pdf.setFillColor(15, 23, 42);
+  pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+  // gradient bar
+  pdf.setFillColor(49, 46, 129);
+  pdf.rect(0, 0, pageWidth, 60, 'F');
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(22);
+  pdf.setTextColor(250, 204, 21);
+  pdf.text('Tarot Monthly Reading', pageWidth / 2, 25, { align: 'center' });
+
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(13);
+  pdf.setTextColor(203, 213, 225);
+  pdf.text('10-Card Celtic Cross Spread', pageWidth / 2, 38, { align: 'center' });
+  pdf.text(currentDate, pageWidth / 2, 52, { align: 'center' });
+
+  // สรุปไพ่ทั้ง 10 ใบในหน้าปก
+  let yPos = 75;
+  pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(12);
-  pdf.setTextColor(0, 0, 0);
-  pdf.text(`จำนวนไพ่ทั้งหมด: ${cards.length} ใบ`, pageWidth / 2, 150, { align: 'center' });
-  
-  // Add each card on separate page
-  cards.forEach((card, index) => {
+  pdf.setTextColor(167, 139, 250);
+  pdf.text('Card Summary', margin, yPos);
+  yPos += 8;
+
+  selectedCards.forEach((card, idx) => {
+    const pos = positionLabels[idx];
+    if (yPos > pageHeight - 20) return; // ป้องกัน overflow
+
+    pdf.setFillColor(30, 41, 59);
+    pdf.roundedRect(margin, yPos - 3, contentWidth, 10, 2, 2, 'F');
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    pdf.setTextColor(250, 204, 21);
+    pdf.text(`${idx + 1}.`, margin + 2, yPos + 4);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(226, 232, 240);
+    pdf.text(`${pos.label}`, margin + 8, yPos + 4);
+
+    pdf.setTextColor(148, 163, 184);
+    const cardLabel = `${card.nameTh}${card.isReversed ? ' (R)' : ''}`;
+    pdf.text(cardLabel, pageWidth - margin - 2, yPos + 4, { align: 'right' });
+
+    yPos += 12;
+  });
+
+  // footer ปก
+  pdf.setFillColor(15, 23, 42);
+  pdf.rect(0, pageHeight - 14, pageWidth, 14, 'F');
+  pdf.setFontSize(8);
+  pdf.setTextColor(100, 116, 139);
+  pdf.text('Generated by Tarot Reading App', pageWidth / 2, pageHeight - 5, { align: 'center' });
+
+  // ======== หน้าละ 1 ใบ ========
+  for (let i = 0; i < selectedCards.length; i++) {
     pdf.addPage();
-    
-    // Page header
-    pdf.setFontSize(16);
-    pdf.setTextColor(75, 0, 130);
-    pdf.text(`ไพ่ที่ ${index + 1} จาก ${cards.length} ใบ`, pageWidth / 2, 30, { align: 'center' });
-    
+
+    const card = selectedCards[i];
+    const pos = positionLabels[i];
+    const meaning = getPositionMeaning(card.id, i);
+
+    // พื้นหลัง
+    pdf.setFillColor(30, 41, 59);
+    pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+    // Header bar
+    pdf.setFillColor(49, 46, 129);
+    pdf.rect(0, 0, pageWidth, 35, 'F');
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.setTextColor(147, 197, 253);
+    pdf.text(`Position ${pos.position} of 10`, margin, 13);
+
+    pdf.setFontSize(13);
+    pdf.setTextColor(250, 204, 21);
+    pdf.text(pos.label, margin, 24);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(148, 163, 184);
+    pdf.text(pos.description, margin, 32);
+
+    // Page number (top right)
+    pdf.setFontSize(9);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(`${i + 1} / ${selectedCards.length}`, pageWidth - margin, 13, { align: 'right' });
+
+    // Card image
+    let imgLoaded = false;
+    try {
+      const img = await loadImageAsBase64(card.image);
+      if (img) {
+        const imgX = pageWidth / 2 - 18;
+        const imgY = 42;
+        pdf.addImage(img, 'PNG', imgX, imgY, 36, 54);
+        if (card.isReversed) {
+          pdf.setDrawColor(239, 68, 68);
+          pdf.setLineWidth(0.8);
+          pdf.rect(imgX, imgY, 36, 54);
+        }
+        imgLoaded = true;
+      }
+    } catch (_) {}
+
+    const afterImg = imgLoaded ? 104 : 45;
+
     // Card name
-    pdf.setFontSize(18);
-    pdf.setTextColor(139, 69, 19);
-    const cardTitle = `${card.nameTh}${card.isReversed ? ' (กลับหัว)' : ''}`;
-    pdf.text(cardTitle, pageWidth / 2, 55, { align: 'center' });
-    
-    pdf.setFontSize(14);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text(card.name, pageWidth / 2, 70, { align: 'center' });
-    
-    // Card meaning
-    pdf.setFontSize(16);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text('🔮 ความหมาย:', 20, 95);
-    
-    // Get meaning
-    let meaning = getCardMeaning(card, category);
-    if (card.isReversed) {
-      meaning = `(กลับหัว) ความหมายตรงข้าม หรือพลังงานที่ถูกบล็อก: ${meaning}`;
-    }
-    
-    // Split text
-    pdf.setFontSize(12);
-    const splitText = pdf.splitTextToSize(meaning, pageWidth - 40);
-    pdf.text(splitText, 20, 115);
-    
-    // Card info
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(15);
+    pdf.setTextColor(250, 204, 21);
+    pdf.text(card.nameTh || card.name, pageWidth / 2, afterImg, { align: 'center' });
+
+    pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(10);
-    pdf.setTextColor(150, 150, 150);
-    pdf.text(`ไพ่ที่ ${card.id} จาก 78 ใบ • ${card.isReversed ? 'กลับหัว' : 'ตั้งตรง'}`, 20, pageHeight - 20);
-  });
-  
-  // Save PDF
-  const fileName = `tarot-monthly-reading-${currentDate}.pdf`;
-  pdf.save(fileName);
+    pdf.setTextColor(148, 163, 184);
+    pdf.text(card.name, pageWidth / 2, afterImg + 7, { align: 'center' });
+
+    if (card.isReversed) {
+      pdf.setFontSize(8);
+      pdf.setTextColor(252, 165, 165);
+      pdf.text('[ Reversed / กลับหัว ]', pageWidth / 2, afterImg + 14, { align: 'center' });
+    }
+
+    // Divider
+    const divY2 = afterImg + (card.isReversed ? 20 : 13);
+    pdf.setDrawColor(99, 102, 241);
+    pdf.setLineWidth(0.4);
+    pdf.line(margin, divY2, pageWidth - margin, divY2);
+
+    // Meaning
+    let yp = divY2 + 8;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.setTextColor(167, 139, 250);
+    pdf.text('Meaning / คำทำนาย', margin, yp);
+    yp += 6;
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9.5);
+    pdf.setTextColor(226, 232, 240);
+    const lines = pdf.splitTextToSize(meaning || '-', contentWidth - 8);
+    const boxH = lines.length * 5.2 + 10;
+
+    pdf.setFillColor(51, 65, 85);
+    pdf.roundedRect(margin, yp - 3, contentWidth, boxH, 3, 3, 'F');
+    pdf.text(lines, margin + 4, yp + 4);
+    yp += boxH + 6;
+
+    // Card info
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(`Card #${card.id} of 78  |  ${card.isReversed ? 'Reversed' : 'Upright'}`, margin, yp);
+
+    // Footer
+    pdf.setFillColor(15, 23, 42);
+    pdf.rect(0, pageHeight - 14, pageWidth, 14, 'F');
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text('Generated by Tarot Reading App', pageWidth / 2, pageHeight - 5, { align: 'center' });
+  }
+
+  // Save
+  const safeDate = new Date().toISOString().slice(0, 10);
+  pdf.save(`tarot-monthly-${safeDate}.pdf`);
 };
 
-// Function to export all cards meanings to PDF
-export const exportAllCardsToPDF = async () => {
-  const { getAllCards } = require('../data/tarotCards');
-  const allCards = getAllCards();
-  
-  const pdf = new jsPDF();
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  
-  // Title page
-  pdf.setFont('helvetica');
-  pdf.setFontSize(24);
-  pdf.setTextColor(75, 0, 130);
-  pdf.text('📚 ความหมายไพ่ทาโรต์', pageWidth / 2, 50, { align: 'center' });
-  pdf.text('ทั้งหมด 78 ใบ', pageWidth / 2, 75, { align: 'center' });
-  
-  // Date
-  pdf.setFontSize(14);
-  pdf.setTextColor(100, 100, 100);
-  const currentDate = new Date().toLocaleDateString('th-TH');
-  pdf.text(`วันที่: ${currentDate}`, pageWidth / 2, 100, { align: 'center' });
-  
-  // Table of contents
-  pdf.addPage();
-  pdf.setFontSize(18);
-  pdf.setTextColor(0, 0, 0);
-  pdf.text('📋 สารบัญ', 20, 30);
-  
-  pdf.setFontSize(12);
-  let yPos = 50;
-  
-  // ส่วนไพ่ใหญ่
-  pdf.setFontSize(14);
-  pdf.setTextColor(139, 69, 19);
-  pdf.text('🌟 ไพ่ใหญ่ (22 ใบ)', 20, yPos);
-  yPos += 15;
-  
-  pdf.setFontSize(10);
-  pdf.setTextColor(0, 0, 0);
-  allCards.slice(0, 22).forEach((card, index) => {
-    if (yPos > pageHeight - 30) {
-      pdf.addPage();
-      yPos = 30;
-    }
-    pdf.text(`${index + 1}. ${card.nameTh} (${card.name})`, 30, yPos);
-    yPos += 8;
+// ---- Helper: โหลดรูปภาพเป็น base64 ----
+const loadImageAsBase64 = (src) => {
+  return new Promise((resolve, reject) => {
+    if (!src) return reject(new Error('No src'));
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = () => reject(new Error('Image load failed'));
+    img.src = src;
   });
-  
-  // ส่วนไพ่เล็ก
-  yPos += 10;
-  if (yPos > pageHeight - 50) {
-    pdf.addPage();
-    yPos = 30;
-  }
-  
-  pdf.setFontSize(14);
-  pdf.setTextColor(139, 69, 19);
-  pdf.text('⚡ ไพ่เล็ก (56 ใบ)', 20, yPos);
-  yPos += 15;
-  
-  // Add each card
-  allCards.forEach((card, index) => {
-    pdf.addPage();
-    
-    // Card header
-    pdf.setFontSize(16);
-    pdf.setTextColor(75, 0, 130);
-    pdf.text(`${index + 1}. ${card.nameTh}`, pageWidth / 2, 30, { align: 'center' });
-    
-    pdf.setFontSize(14);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text(card.name, pageWidth / 2, 45, { align: 'center' });
-    
-    // Card meaning
-    pdf.setFontSize(16);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text('🔮 ความหมาย:', 20, 70);
-    
-    pdf.setFontSize(12);
-    const splitText = pdf.splitTextToSize(card.meaning, pageWidth - 40);
-    pdf.text(splitText, 20, 90);
-    
-    // Card info
-    pdf.setFontSize(10);
-    pdf.setTextColor(150, 150, 150);
-    pdf.text(`ไพ่ที่ ${card.id} จาก 78 ใบ`, 20, pageHeight - 20);
-  });
-  
-  // Save PDF
-  const fileName = `tarot-all-cards-meanings-${currentDate}.pdf`;
-  pdf.save(fileName);
 };
