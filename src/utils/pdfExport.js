@@ -1,346 +1,254 @@
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-// ตัวช่วย: แปลงข้อความภาษาไทยให้ jsPDF รองรับ (ใช้ encoding แบบ latin)
-// jsPDF ไม่รองรับ Unicode โดยตรง — ใช้ html2canvas แทนสำหรับ Thai text
-// ฟังก์ชันนี้ใช้วิธี canvas snapshot ของ DOM element
+// ---- สร้าง HTML element ชั่วคราว render แล้วแปลงเป็น canvas ----
+const renderHtmlToPdfPage = async (pdf, htmlContent, isFirstPage = false) => {
+  // สร้าง container ชั่วคราวนอกหน้าจอ
+  const container = document.createElement('div');
+  container.style.cssText = `
+    position: fixed;
+    top: -9999px;
+    left: -9999px;
+    width: 794px;
+    background: #0f172a;
+    font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+  `;
+  container.innerHTML = htmlContent;
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#0f172a',
+      logging: false,
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    // คำนวณความสูงตามสัดส่วน
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+    const ratio = pdfWidth / imgWidth;
+    const scaledHeight = imgHeight * ratio;
+
+    if (!isFirstPage) pdf.addPage();
+
+    // ถ้าสูงเกิน 1 หน้า ให้ scale ให้พอดี
+    if (scaledHeight <= pdfHeight) {
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, scaledHeight);
+    } else {
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    }
+  } finally {
+    document.body.removeChild(container);
+  }
+};
+
+// ---- Template: หน้าปก Daily ----
+const buildDailyCoverHtml = (card, category, meaning, currentDate) => {
+  const reversedBadge = card.isReversed
+    ? `<span style="background:#7f1d1d;color:#fca5a5;padding:3px 10px;border-radius:20px;font-size:13px;">กลับหัว</span>`
+    : '';
+
+  const categoryHtml = category
+    ? `<div style="margin-top:6px;">
+        <span style="background:#1e3a5f;color:#93c5fd;padding:4px 14px;border-radius:20px;font-size:13px;">
+          ${category.icon || ''} ${category.name}
+        </span>
+       </div>`
+    : '';
+
+  const imgHtml = card.image
+    ? `<img src="${card.image}" crossorigin="anonymous"
+         style="width:110px;height:165px;object-fit:cover;border-radius:10px;
+                border:2px solid ${card.isReversed ? '#ef4444' : '#facc15'};
+                ${card.isReversed ? 'transform:rotate(180deg);' : ''}
+                box-shadow:0 0 20px rgba(250,204,21,0.3);" />`
+    : `<div style="width:110px;height:165px;background:linear-gradient(135deg,#4c1d95,#1e3a8a);
+                   border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:40px;">🎴</div>`;
+
+  return `
+    <div style="background:#0f172a;min-height:1122px;padding:0;color:white;">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#312e81,#1e1b4b);padding:32px 40px 24px;">
+        <div style="font-size:26px;font-weight:bold;color:#facc15;text-align:center;">🔮 ผลดูดวงรายวัน</div>
+        <div style="font-size:14px;color:#94a3b8;text-align:center;margin-top:6px;">${currentDate}</div>
+        ${categoryHtml}
+      </div>
+
+      <!-- Card section -->
+      <div style="padding:32px 40px;display:flex;flex-direction:column;align-items:center;gap:16px;">
+        ${imgHtml}
+        <div style="text-align:center;margin-top:8px;">
+          <div style="font-size:24px;font-weight:bold;color:#facc15;">${card.nameTh || card.name}</div>
+          <div style="font-size:14px;color:#94a3b8;margin-top:4px;">${card.name}</div>
+          <div style="margin-top:8px;">${reversedBadge}</div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div style="margin:0 40px;height:1px;background:linear-gradient(to right,transparent,#6366f1,transparent);"></div>
+
+      <!-- Meaning -->
+      <div style="padding:24px 40px;">
+        <div style="font-size:15px;font-weight:bold;color:#a78bfa;margin-bottom:10px;">✨ ความหมาย / คำทำนาย</div>
+        <div style="background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155;">
+          <p style="font-size:14px;color:#e2e8f0;line-height:1.9;margin:0;">${meaning || '-'}</p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="position:absolute;bottom:0;left:0;right:0;background:#020617;padding:10px;text-align:center;">
+        <span style="font-size:11px;color:#475569;">ไพ่ที่ ${card.id} จาก 78 ใบ  •  สร้างโดย Tarot Reading App</span>
+      </div>
+    </div>
+  `;
+};
+
+// ---- Template: หน้าปก Monthly ----
+const buildMonthlyCoverHtml = (selectedCards, positionLabels, currentDate) => {
+  const rows = selectedCards.map((card, idx) => {
+    const pos = positionLabels[idx];
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;
+                  background:${idx % 2 === 0 ? '#1e293b' : '#0f172a'};border-radius:8px;margin-bottom:4px;">
+        <span style="color:#facc15;font-weight:bold;font-size:14px;min-width:24px;">${idx + 1}.</span>
+        <span style="font-size:13px;color:#e2e8f0;flex:1;">${pos.label}</span>
+        <span style="font-size:13px;color:#94a3b8;">
+          ${card.nameTh}${card.isReversed ? ' <span style="color:#fca5a5;font-size:11px;">(กลับหัว)</span>' : ''}
+        </span>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div style="background:#0f172a;min-height:1122px;padding:0;color:white;position:relative;">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#312e81,#1e1b4b);padding:40px 40px 28px;">
+        <div style="font-size:28px;font-weight:bold;color:#facc15;text-align:center;">🌙 ผลดูดวงรายเดือน</div>
+        <div style="font-size:15px;color:#c7d2fe;text-align:center;margin-top:8px;">10-Card Spread</div>
+        <div style="font-size:13px;color:#94a3b8;text-align:center;margin-top:6px;">${currentDate}</div>
+      </div>
+
+      <!-- Summary -->
+      <div style="padding:28px 40px;">
+        <div style="font-size:15px;font-weight:bold;color:#a78bfa;margin-bottom:14px;">📋 สรุปไพ่ทั้ง 10 ใบ</div>
+        ${rows}
+      </div>
+
+      <!-- Footer -->
+      <div style="position:absolute;bottom:0;left:0;right:0;background:#020617;padding:10px;text-align:center;">
+        <span style="font-size:11px;color:#475569;">สร้างโดย Tarot Reading App</span>
+      </div>
+    </div>
+  `;
+};
+
+// ---- Template: หน้าไพ่แต่ละใบ Monthly ----
+const buildMonthlyCardHtml = (card, pos, meaning, index, total) => {
+  const reversedBadge = card.isReversed
+    ? `<span style="background:#7f1d1d;color:#fca5a5;padding:3px 10px;border-radius:20px;font-size:12px;">กลับหัว</span>`
+    : '';
+
+  const imgHtml = card.image
+    ? `<img src="${card.image}" crossorigin="anonymous"
+         style="width:90px;height:135px;object-fit:cover;border-radius:8px;
+                border:2px solid ${card.isReversed ? '#ef4444' : '#facc15'};
+                ${card.isReversed ? 'transform:rotate(180deg);' : ''}
+                box-shadow:0 0 16px rgba(250,204,21,0.25);" />`
+    : `<div style="width:90px;height:135px;background:linear-gradient(135deg,#4c1d95,#1e3a8a);
+                   border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:36px;">🎴</div>`;
+
+  return `
+    <div style="background:#0f172a;min-height:1122px;padding:0;color:white;position:relative;">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#312e81,#1e1b4b);padding:20px 40px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div style="font-size:12px;color:#93c5fd;font-weight:600;">ตำแหน่งที่ ${pos.position} จาก 10</div>
+            <div style="font-size:20px;font-weight:bold;color:#facc15;margin-top:4px;">${pos.icon} ${pos.label}</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:3px;">${pos.description}</div>
+          </div>
+          <div style="font-size:13px;color:#64748b;white-space:nowrap;padding-top:4px;">${index + 1} / ${total}</div>
+        </div>
+      </div>
+
+      <!-- Card info -->
+      <div style="padding:24px 40px;display:flex;gap:24px;align-items:flex-start;">
+        <div style="flex-shrink:0;">${imgHtml}</div>
+        <div style="flex:1;">
+          <div style="font-size:22px;font-weight:bold;color:#facc15;">${card.nameTh || card.name}</div>
+          <div style="font-size:13px;color:#94a3b8;margin-top:4px;">${card.name}</div>
+          <div style="margin-top:8px;">${reversedBadge}</div>
+          <div style="margin-top:12px;font-size:11px;color:#475569;">ไพ่ที่ ${card.id} จาก 78 ใบ</div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div style="margin:0 40px;height:1px;background:linear-gradient(to right,transparent,#6366f1,transparent);"></div>
+
+      <!-- Meaning -->
+      <div style="padding:20px 40px;">
+        <div style="font-size:14px;font-weight:bold;color:#a78bfa;margin-bottom:10px;">✨ ความหมาย / คำทำนาย</div>
+        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid #334155;">
+          <p style="font-size:13.5px;color:#e2e8f0;line-height:2;margin:0;">${meaning || '-'}</p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="position:absolute;bottom:0;left:0;right:0;background:#020617;padding:10px;text-align:center;">
+        <span style="font-size:11px;color:#475569;">สร้างโดย Tarot Reading App</span>
+      </div>
+    </div>
+  `;
+};
+
+// ================================================================
+// PUBLIC API
+// ================================================================
 
 /**
  * Export Daily Reading to PDF
- * @param {object} card - ไพ่ที่จับได้
- * @param {object} category - หมวดหมู่ที่เลือก
- * @param {string} meaning - ความหมายของไพ่
  */
 export const exportDailyReadingToPDF = async (card, category, meaning) => {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 20;
-  const contentWidth = pageWidth - margin * 2;
-
   const currentDate = new Date().toLocaleDateString('th-TH', {
     year: 'numeric', month: 'long', day: 'numeric',
   });
 
-  // ---- พื้นหลัง gradient จำลอง ----
-  pdf.setFillColor(30, 41, 59); // slate-800
-  pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+  const html = buildDailyCoverHtml(card, category, meaning, currentDate);
+  await renderHtmlToPdfPage(pdf, html, true);
 
-  // ---- Header bar ----
-  pdf.setFillColor(49, 46, 129); // indigo-900
-  pdf.rect(0, 0, pageWidth, 40, 'F');
-
-  // ---- Title ----
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(18);
-  pdf.setTextColor(250, 204, 21); // yellow-400
-  pdf.text('Tarot Daily Reading', pageWidth / 2, 16, { align: 'center' });
-
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(11);
-  pdf.setTextColor(203, 213, 225); // slate-300
-  pdf.text(currentDate, pageWidth / 2, 26, { align: 'center' });
-
-  if (category) {
-    pdf.setFontSize(10);
-    pdf.setTextColor(147, 197, 253); // blue-300
-    pdf.text(`Category: ${category.name}`, pageWidth / 2, 35, { align: 'center' });
-  }
-
-  // ---- Card image ----
-  let imageLoaded = false;
-  try {
-    const img = await loadImageAsBase64(card.image);
-    if (img) {
-      const imgX = pageWidth / 2 - 20;
-      const imgY = 50;
-      pdf.addImage(img, 'PNG', imgX, imgY, 40, 60);
-      if (card.isReversed) {
-        // วาดกรอบสีแดงถ้ากลับหัว
-        pdf.setDrawColor(239, 68, 68);
-        pdf.setLineWidth(0.8);
-        pdf.rect(imgX, imgY, 40, 60);
-      }
-      imageLoaded = true;
-    }
-  } catch (_) {
-    imageLoaded = false;
-  }
-
-  const afterImageY = imageLoaded ? 120 : 55;
-
-  // ---- Card name ----
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(16);
-  pdf.setTextColor(250, 204, 21); // yellow-400
-  pdf.text(card.nameTh || card.name, pageWidth / 2, afterImageY, { align: 'center' });
-
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(11);
-  pdf.setTextColor(148, 163, 184); // slate-400
-  pdf.text(card.name, pageWidth / 2, afterImageY + 8, { align: 'center' });
-
-  if (card.isReversed) {
-    pdf.setFontSize(9);
-    pdf.setTextColor(252, 165, 165); // red-300
-    pdf.text('[ Reversed ]', pageWidth / 2, afterImageY + 16, { align: 'center' });
-  }
-
-  // ---- Divider ----
-  const divY = afterImageY + (card.isReversed ? 22 : 16);
-  pdf.setDrawColor(99, 102, 241); // indigo-500
-  pdf.setLineWidth(0.5);
-  pdf.line(margin, divY, pageWidth - margin, divY);
-
-  // ---- Meaning section ----
-  let yPos = divY + 10;
-
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(12);
-  pdf.setTextColor(167, 139, 250); // violet-400
-  pdf.text('Meaning / คำทำนาย', margin, yPos);
-  yPos += 8;
-
-  // วาดกล่องพื้นหลัง
-  const meaningText = meaning || '-';
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(10);
-  pdf.setTextColor(226, 232, 240); // slate-200
-
-  // แปลงข้อความ (ภาษาไทยจะแสดงเป็น fallback characters ใน jsPDF)
-  const lines = pdf.splitTextToSize(meaningText, contentWidth);
-  const boxHeight = lines.length * 5.5 + 10;
-
-  pdf.setFillColor(51, 65, 85); // slate-700
-  pdf.roundedRect(margin, yPos - 4, contentWidth, boxHeight, 3, 3, 'F');
-
-  pdf.text(lines, margin + 5, yPos + 3);
-  yPos += boxHeight + 10;
-
-  // ---- Card info ----
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(9);
-  pdf.setTextColor(100, 116, 139); // slate-500
-  pdf.text(`Card #${card.id} of 78  |  ${card.isReversed ? 'Reversed' : 'Upright'}`, margin, yPos);
-
-  // ---- Footer ----
-  pdf.setFillColor(15, 23, 42); // slate-950
-  pdf.rect(0, pageHeight - 14, pageWidth, 14, 'F');
-  pdf.setFontSize(8);
-  pdf.setTextColor(100, 116, 139);
-  pdf.text('Generated by Tarot Reading App', pageWidth / 2, pageHeight - 5, { align: 'center' });
-
-  // ---- Save ----
   const safeDate = new Date().toISOString().slice(0, 10);
   pdf.save(`tarot-daily-${safeDate}.pdf`);
 };
 
 /**
  * Export Monthly Reading (10 cards) to PDF
- * @param {Array} selectedCards - ไพ่ 10 ใบที่เลือก
- * @param {Function} getPositionMeaning - ฟังก์ชันดึงความหมายตามตำแหน่ง
- * @param {Array} positionLabels - ป้ายชื่อตำแหน่ง 10 ตำแหน่ง
  */
 export const exportMonthlyReadingToPDF = async (selectedCards, getPositionMeaning, positionLabels) => {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 20;
-  const contentWidth = pageWidth - margin * 2;
-
   const currentDate = new Date().toLocaleDateString('th-TH', {
     year: 'numeric', month: 'long', day: 'numeric',
   });
 
-  // ======== หน้าปก ========
-  pdf.setFillColor(15, 23, 42);
-  pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+  // หน้าปก
+  const coverHtml = buildMonthlyCoverHtml(selectedCards, positionLabels, currentDate);
+  await renderHtmlToPdfPage(pdf, coverHtml, true);
 
-  // gradient bar
-  pdf.setFillColor(49, 46, 129);
-  pdf.rect(0, 0, pageWidth, 60, 'F');
-
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(22);
-  pdf.setTextColor(250, 204, 21);
-  pdf.text('Tarot Monthly Reading', pageWidth / 2, 25, { align: 'center' });
-
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(13);
-  pdf.setTextColor(203, 213, 225);
-  pdf.text('10-Card Celtic Cross Spread', pageWidth / 2, 38, { align: 'center' });
-  pdf.text(currentDate, pageWidth / 2, 52, { align: 'center' });
-
-  // สรุปไพ่ทั้ง 10 ใบในหน้าปก
-  let yPos = 75;
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(12);
-  pdf.setTextColor(167, 139, 250);
-  pdf.text('Card Summary', margin, yPos);
-  yPos += 8;
-
-  selectedCards.forEach((card, idx) => {
-    const pos = positionLabels[idx];
-    if (yPos > pageHeight - 20) return; // ป้องกัน overflow
-
-    pdf.setFillColor(30, 41, 59);
-    pdf.roundedRect(margin, yPos - 3, contentWidth, 10, 2, 2, 'F');
-
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8);
-    pdf.setTextColor(250, 204, 21);
-    pdf.text(`${idx + 1}.`, margin + 2, yPos + 4);
-
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(226, 232, 240);
-    pdf.text(`${pos.label}`, margin + 8, yPos + 4);
-
-    pdf.setTextColor(148, 163, 184);
-    const cardLabel = `${card.nameTh}${card.isReversed ? ' (R)' : ''}`;
-    pdf.text(cardLabel, pageWidth - margin - 2, yPos + 4, { align: 'right' });
-
-    yPos += 12;
-  });
-
-  // footer ปก
-  pdf.setFillColor(15, 23, 42);
-  pdf.rect(0, pageHeight - 14, pageWidth, 14, 'F');
-  pdf.setFontSize(8);
-  pdf.setTextColor(100, 116, 139);
-  pdf.text('Generated by Tarot Reading App', pageWidth / 2, pageHeight - 5, { align: 'center' });
-
-  // ======== หน้าละ 1 ใบ ========
+  // หน้าละ 1 ใบ
   for (let i = 0; i < selectedCards.length; i++) {
-    pdf.addPage();
-
     const card = selectedCards[i];
     const pos = positionLabels[i];
     const meaning = getPositionMeaning(card.id, i);
-
-    // พื้นหลัง
-    pdf.setFillColor(30, 41, 59);
-    pdf.rect(0, 0, pageWidth, pageHeight, 'F');
-
-    // Header bar
-    pdf.setFillColor(49, 46, 129);
-    pdf.rect(0, 0, pageWidth, 35, 'F');
-
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10);
-    pdf.setTextColor(147, 197, 253);
-    pdf.text(`Position ${pos.position} of 10`, margin, 13);
-
-    pdf.setFontSize(13);
-    pdf.setTextColor(250, 204, 21);
-    pdf.text(pos.label, margin, 24);
-
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(9);
-    pdf.setTextColor(148, 163, 184);
-    pdf.text(pos.description, margin, 32);
-
-    // Page number (top right)
-    pdf.setFontSize(9);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text(`${i + 1} / ${selectedCards.length}`, pageWidth - margin, 13, { align: 'right' });
-
-    // Card image
-    let imgLoaded = false;
-    try {
-      const img = await loadImageAsBase64(card.image);
-      if (img) {
-        const imgX = pageWidth / 2 - 18;
-        const imgY = 42;
-        pdf.addImage(img, 'PNG', imgX, imgY, 36, 54);
-        if (card.isReversed) {
-          pdf.setDrawColor(239, 68, 68);
-          pdf.setLineWidth(0.8);
-          pdf.rect(imgX, imgY, 36, 54);
-        }
-        imgLoaded = true;
-      }
-    } catch (_) {}
-
-    const afterImg = imgLoaded ? 104 : 45;
-
-    // Card name
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(15);
-    pdf.setTextColor(250, 204, 21);
-    pdf.text(card.nameTh || card.name, pageWidth / 2, afterImg, { align: 'center' });
-
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(10);
-    pdf.setTextColor(148, 163, 184);
-    pdf.text(card.name, pageWidth / 2, afterImg + 7, { align: 'center' });
-
-    if (card.isReversed) {
-      pdf.setFontSize(8);
-      pdf.setTextColor(252, 165, 165);
-      pdf.text('[ Reversed / กลับหัว ]', pageWidth / 2, afterImg + 14, { align: 'center' });
-    }
-
-    // Divider
-    const divY2 = afterImg + (card.isReversed ? 20 : 13);
-    pdf.setDrawColor(99, 102, 241);
-    pdf.setLineWidth(0.4);
-    pdf.line(margin, divY2, pageWidth - margin, divY2);
-
-    // Meaning
-    let yp = divY2 + 8;
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10);
-    pdf.setTextColor(167, 139, 250);
-    pdf.text('Meaning / คำทำนาย', margin, yp);
-    yp += 6;
-
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(9.5);
-    pdf.setTextColor(226, 232, 240);
-    const lines = pdf.splitTextToSize(meaning || '-', contentWidth - 8);
-    const boxH = lines.length * 5.2 + 10;
-
-    pdf.setFillColor(51, 65, 85);
-    pdf.roundedRect(margin, yp - 3, contentWidth, boxH, 3, 3, 'F');
-    pdf.text(lines, margin + 4, yp + 4);
-    yp += boxH + 6;
-
-    // Card info
-    pdf.setFontSize(8);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text(`Card #${card.id} of 78  |  ${card.isReversed ? 'Reversed' : 'Upright'}`, margin, yp);
-
-    // Footer
-    pdf.setFillColor(15, 23, 42);
-    pdf.rect(0, pageHeight - 14, pageWidth, 14, 'F');
-    pdf.setFontSize(8);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text('Generated by Tarot Reading App', pageWidth / 2, pageHeight - 5, { align: 'center' });
+    const html = buildMonthlyCardHtml(card, pos, meaning, i, selectedCards.length);
+    await renderHtmlToPdfPage(pdf, html, false);
   }
 
-  // Save
   const safeDate = new Date().toISOString().slice(0, 10);
   pdf.save(`tarot-monthly-${safeDate}.pdf`);
-};
-
-// ---- Helper: โหลดรูปภาพเป็น base64 ----
-const loadImageAsBase64 = (src) => {
-  return new Promise((resolve, reject) => {
-    if (!src) return reject(new Error('No src'));
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth || img.width;
-        canvas.height = img.naturalHeight || img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      } catch (e) {
-        reject(e);
-      }
-    };
-    img.onerror = () => reject(new Error('Image load failed'));
-    img.src = src;
-  });
 };
