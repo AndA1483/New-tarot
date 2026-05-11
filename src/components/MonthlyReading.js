@@ -110,7 +110,7 @@ const MonthlyReading = ({ onBack, onNavigate, currentPage }) => {
   // ---- หน้า Loading ----
   if (phase === 'loading') {
     return (
-      <div className="min-h-screen bg-slate-800 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-800 flex items-center justify-center px-4">
         <div className="text-center">
           <div className="mb-6">
             <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-500"></div>
@@ -124,16 +124,16 @@ const MonthlyReading = ({ onBack, onNavigate, currentPage }) => {
   // ---- หน้า จงตั้งจิตอธิษฐาน ----
   if (phase === 'pray') {
     return (
-      <div className="min-h-screen bg-slate-800 flex items-center justify-center">
-        <div className="text-center px-4">
-          <div className="mb-8">
-            <span className="text-8xl">🙏</span>
+      <div className="min-h-screen bg-slate-800 flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="mb-6">
+            <span className="text-7xl sm:text-8xl">🙏</span>
           </div>
-          <h2 className="text-white text-4xl font-bold mb-4">จงตั้งจิตอธิษฐาน</h2>
-          <p className="text-slate-300 text-lg mb-8">ขอให้สิ่งที่ปรารถนาจงเป็นจริง</p>
+          <h2 className="text-white text-3xl sm:text-4xl font-bold mb-4">จงตั้งจิตอธิษฐาน</h2>
+          <p className="text-slate-300 text-base sm:text-lg mb-8">ขอให้สิ่งที่ปรารถนาจงเป็นจริง</p>
           <button
             onClick={handlePrayDone}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-4 px-12 rounded-xl shadow-xl text-lg transition-all duration-200 hover:scale-105"
+            className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 active:from-purple-800 active:to-blue-800 text-white font-bold py-4 px-10 rounded-xl shadow-xl text-lg transition-all duration-200"
           >
             เปิดดูคำทำนาย
           </button>
@@ -156,20 +156,21 @@ const MonthlyReading = ({ onBack, onNavigate, currentPage }) => {
           currentPage={currentPage}
         />
 
-        <div className="container mx-auto px-4 py-6 max-w-4xl">
+        <div className="container mx-auto px-4 py-5 max-w-4xl">
+
           {/* ภาพรวมไพ่ทั้ง 10 ใบ */}
-          <div className="bg-slate-700 border border-slate-600 rounded-xl p-4 mb-6">
-            <h3 className="text-white font-semibold text-center mb-3">ไพ่ที่เลือก 10 ใบ</h3>
+          <div className="bg-slate-700 border border-slate-600 rounded-xl p-3 sm:p-4 mb-5">
+            <h3 className="text-white font-semibold text-center mb-3 text-sm sm:text-base">ไพ่ที่เลือก 10 ใบ</h3>
             <div className="flex flex-wrap justify-center gap-2">
               {selectedCards.map((card, idx) => (
                 <button
                   key={card.id}
                   onClick={() => setActiveResultIndex(idx)}
-                  className={`relative flex flex-col items-center transition-all duration-200 ${
-                    idx === activeResultIndex ? 'scale-110' : 'opacity-70 hover:opacity-100'
+                  className={`flex flex-col items-center transition-all duration-200 ${
+                    idx === activeResultIndex ? 'scale-110' : 'opacity-70'
                   }`}
                 >
-                  <div className={`w-12 h-16 rounded-lg overflow-hidden border-2 ${
+                  <div className={`w-10 h-14 sm:w-12 sm:h-16 rounded-lg overflow-hidden border-2 ${
                     idx === activeResultIndex
                       ? 'border-yellow-400 shadow-lg shadow-yellow-400/30'
                       : 'border-slate-500'
@@ -183,29 +184,27 @@ const MonthlyReading = ({ onBack, onNavigate, currentPage }) => {
                   </div>
                   <span className={`text-xs mt-1 font-bold ${
                     idx === activeResultIndex ? 'text-yellow-400' : 'text-slate-400'
-                  }`}>
-                    {idx + 1}
-                  </span>
+                  }`}>{idx + 1}</span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* รายละเอียดไพ่ที่เลือก */}
-          <div className="bg-slate-700 border border-slate-600 rounded-xl p-6 mb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">{activePosition.icon}</span>
+          <div className="bg-slate-700 border border-slate-600 rounded-xl p-4 sm:p-6 mb-5">
+            <div className="flex items-start gap-2 mb-4">
+              <span className="text-xl sm:text-2xl flex-shrink-0">{activePosition.icon}</span>
               <div>
-                <div className="text-yellow-400 text-sm font-medium">ตำแหน่งที่ {activePosition.position}</div>
-                <div className="text-white text-xl font-bold">{activePosition.label}</div>
-                <div className="text-slate-400 text-sm">{activePosition.description}</div>
+                <div className="text-yellow-400 text-xs sm:text-sm font-medium">ตำแหน่งที่ {activePosition.position}</div>
+                <div className="text-white text-lg sm:text-xl font-bold leading-tight">{activePosition.label}</div>
+                <div className="text-slate-400 text-xs sm:text-sm">{activePosition.description}</div>
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-6 items-start">
-              {/* รูปไพ่ */}
-              <div className="flex-shrink-0 mx-auto md:mx-0">
-                <div className={`w-32 h-48 rounded-xl overflow-hidden border-2 border-yellow-400 shadow-xl shadow-yellow-400/20 ${activeCard.isReversed ? 'rotate-180' : ''}`}>
+            {/* รูปไพ่ + ข้อมูล — stack บน mobile, row บน md+ */}
+            <div className="flex flex-col sm:flex-row gap-5 items-center sm:items-start">
+              <div className="flex-shrink-0">
+                <div className={`w-28 h-40 sm:w-32 sm:h-48 rounded-xl overflow-hidden border-2 border-yellow-400 shadow-xl shadow-yellow-400/20 ${activeCard.isReversed ? 'rotate-180' : ''}`}>
                   <img
                     src={activeCard.image}
                     alt={activeCard.nameTh}
@@ -223,14 +222,11 @@ const MonthlyReading = ({ onBack, onNavigate, currentPage }) => {
                 )}
               </div>
 
-              {/* ข้อมูลไพ่ */}
-              <div className="flex-1">
-                <div className="mb-3">
-                  <h2 className="text-white text-2xl font-bold">{activeCard.nameTh}</h2>
-                  <p className="text-slate-400 text-sm">{activeCard.name}</p>
-                </div>
+              <div className="flex-1 w-full">
+                <h2 className="text-white text-xl sm:text-2xl font-bold">{activeCard.nameTh}</h2>
+                <p className="text-slate-400 text-sm mb-3">{activeCard.name}</p>
                 <div className="bg-slate-800 rounded-lg p-4">
-                  <p className="text-slate-200 leading-relaxed">
+                  <p className="text-slate-200 text-sm sm:text-base leading-relaxed">
                     {getPositionMeaning(activeCard.id, activeResultIndex)}
                   </p>
                 </div>
@@ -239,11 +235,11 @@ const MonthlyReading = ({ onBack, onNavigate, currentPage }) => {
           </div>
 
           {/* ปุ่มนำทาง */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-5">
             <button
               onClick={() => setActiveResultIndex((i) => Math.max(0, i - 1))}
               disabled={activeResultIndex === 0}
-              className="bg-slate-600 hover:bg-slate-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2 rounded-lg transition-colors"
+              className="bg-slate-600 active:bg-slate-800 hover:bg-slate-500 disabled:opacity-40 text-white px-4 sm:px-5 py-3 rounded-lg transition-colors text-sm sm:text-base min-w-[80px]"
             >
               ← ก่อนหน้า
             </button>
@@ -253,38 +249,38 @@ const MonthlyReading = ({ onBack, onNavigate, currentPage }) => {
             <button
               onClick={() => setActiveResultIndex((i) => Math.min(selectedCards.length - 1, i + 1))}
               disabled={activeResultIndex === selectedCards.length - 1}
-              className="bg-slate-600 hover:bg-slate-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-2 rounded-lg transition-colors"
+              className="bg-slate-600 active:bg-slate-800 hover:bg-slate-500 disabled:opacity-40 text-white px-4 sm:px-5 py-3 rounded-lg transition-colors text-sm sm:text-base min-w-[80px]"
             >
               ถัดไป →
             </button>
           </div>
 
           {/* สรุปทั้งหมด */}
-          <div className="bg-slate-700 border border-slate-600 rounded-xl p-6 mb-6">
-            <h3 className="text-white font-bold text-lg mb-4 text-center">📋 สรุปคำทำนายทั้งหมด</h3>
-            <div className="space-y-3">
+          <div className="bg-slate-700 border border-slate-600 rounded-xl p-4 sm:p-6 mb-5">
+            <h3 className="text-white font-bold text-base sm:text-lg mb-4 text-center">📋 สรุปคำทำนายทั้งหมด</h3>
+            <div className="space-y-2">
               {selectedCards.map((card, idx) => {
                 const pos = POSITION_LABELS[idx];
                 return (
                   <button
                     key={card.id}
                     onClick={() => setActiveResultIndex(idx)}
-                    className={`w-full text-left flex items-start gap-3 p-3 rounded-lg transition-colors ${
+                    className={`w-full text-left flex items-center gap-3 p-3 rounded-lg transition-colors ${
                       idx === activeResultIndex
                         ? 'bg-blue-900 border border-blue-500'
-                        : 'bg-slate-800 hover:bg-slate-600'
+                        : 'bg-slate-800 active:bg-slate-600 hover:bg-slate-600'
                     }`}
                   >
-                    <span className="text-lg flex-shrink-0">{pos.icon}</span>
+                    <span className="text-base flex-shrink-0">{pos.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-yellow-400 text-xs font-medium">ตำแหน่ง {pos.position}</span>
-                        <span className="text-white text-sm font-semibold">{pos.label}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-yellow-400 text-xs font-medium">{pos.position}.</span>
+                        <span className="text-white text-xs sm:text-sm font-semibold truncate">{pos.label}</span>
                         {card.isReversed && (
-                          <span className="bg-red-900 text-red-300 text-xs px-1.5 py-0.5 rounded">กลับหัว</span>
+                          <span className="bg-red-900 text-red-300 text-xs px-1.5 py-0.5 rounded flex-shrink-0">กลับหัว</span>
                         )}
                       </div>
-                      <div className="text-slate-300 text-sm mt-0.5">🃏 {card.nameTh}</div>
+                      <div className="text-slate-300 text-xs mt-0.5 truncate">🃏 {card.nameTh}</div>
                     </div>
                   </button>
                 );
@@ -292,29 +288,27 @@ const MonthlyReading = ({ onBack, onNavigate, currentPage }) => {
             </div>
           </div>
 
-          {/* ปุ่มรีเซ็ต */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {/* ปุ่มรีเซ็ต + Export */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pb-6">
             <button
               onClick={handleReset}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-all duration-200 hover:scale-105"
+              className="w-full sm:w-auto bg-blue-600 active:bg-blue-800 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-xl shadow-lg transition-all duration-200 text-base"
             >
               🔄 เลือกไพ่ใหม่
             </button>
             <button
               onClick={handleExportPDF}
               disabled={isExporting}
-              className="bg-purple-600 hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-all duration-200 hover:scale-105 flex items-center gap-2 justify-center"
+              className="w-full sm:w-auto bg-purple-600 active:bg-purple-800 hover:bg-purple-700 disabled:opacity-60 text-white font-semibold py-4 px-8 rounded-xl shadow-lg transition-all duration-200 flex items-center gap-2 justify-center text-base"
             >
               {isExporting ? (
-                <>
-                  <span className="animate-spin inline-block">⏳</span>
-                  กำลังสร้าง PDF...
-                </>
+                <><span className="animate-spin">⏳</span> กำลังสร้าง PDF...</>
               ) : (
                 <>📄 Export PDF</>
               )}
             </button>
           </div>
+
         </div>
       </div>
     );
