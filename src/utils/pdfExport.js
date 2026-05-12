@@ -175,13 +175,13 @@ const buildMonthlyCardHtml = (card, pos, meaning, index, total) => {
 
   const imgHtml = card.image
     ? `<img src="${card.image}" crossorigin="anonymous" style="
-         width:160px;height:240px;object-fit:cover;border-radius:12px;display:block;
+         width:220px;height:330px;object-fit:cover;border-radius:12px;display:block;
          border:2px solid ${accentColor};
          ${isReversed ? 'transform:rotate(180deg);' : ''}
        "/>`
-    : `<div style="width:160px;height:240px;background:${C.cardBg};border-radius:12px;
+    : `<div style="width:220px;height:330px;background:${C.cardBg};border-radius:12px;
                    border:2px solid ${C.border};
-                   display:flex;align-items:center;justify-content:center;font-size:48px;">🎴</div>`;
+                   display:flex;align-items:center;justify-content:center;font-size:56px;">🎴</div>`;
 
   return `
     <div style="
@@ -229,17 +229,17 @@ const buildMonthlyCardHtml = (card, pos, meaning, index, total) => {
 
         <!-- ชื่อ + ความหมาย -->
         <div style="flex:1;min-width:0;">
-          <div style="font-size:26px;font-weight:800;color:${C.textYellow};line-height:1.2;">
+          <div style="font-size:32px;font-weight:800;color:${C.textYellow};line-height:1.2;">
             ${card.nameTh || card.name}
           </div>
-          <div style="font-size:13px;color:${C.textSub};margin-top:4px;font-style:italic;">
+          <div style="font-size:16px;color:${C.textSub};margin-top:4px;font-style:italic;">
             ${card.name}
           </div>
 
           <!-- divider -->
           <div style="height:1px;background:${C.border};margin:16px 0;"></div>
 
-          <div style="font-size:13px;font-weight:700;color:${accentColor};
+          <div style="font-size:15px;font-weight:700;color:${accentColor};
                       letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">
             ✨ คำทำนาย
           </div>
@@ -250,7 +250,7 @@ const buildMonthlyCardHtml = (card, pos, meaning, index, total) => {
             padding:18px 20px;
             border-left:4px solid ${accentColor};
           ">
-            <p style="font-size:14px;color:${C.textWhite};line-height:2;margin:0;word-break:break-word;">
+            <p style="font-size:16px;color:${C.textWhite};line-height:2;margin:0;word-break:break-word;">
               ${meaning || '-'}
             </p>
           </div>
@@ -295,13 +295,13 @@ const buildDailyCoverHtml = (card, category, meaning) => {
 
   const imgHtml = card.image
     ? `<img src="${card.image}" crossorigin="anonymous" style="
-         width:160px;height:240px;object-fit:cover;border-radius:12px;display:block;
+         width:220px;height:330px;object-fit:cover;border-radius:12px;display:block;
          border:2px solid ${C.orange};
          ${isReversed ? 'transform:rotate(180deg);' : ''}
        "/>`
-    : `<div style="width:160px;height:240px;background:${C.cardBg};border-radius:12px;
+    : `<div style="width:220px;height:330px;background:${C.cardBg};border-radius:12px;
                    border:2px solid ${C.border};
-                   display:flex;align-items:center;justify-content:center;font-size:48px;">🎴</div>`;
+                   display:flex;align-items:center;justify-content:center;font-size:56px;">🎴</div>`;
 
   return `
     <div style="
@@ -342,17 +342,17 @@ const buildDailyCoverHtml = (card, category, meaning) => {
 
         <!-- ชื่อ + ความหมาย -->
         <div style="flex:1;min-width:0;">
-          <div style="font-size:26px;font-weight:800;color:${C.textYellow};line-height:1.2;">
+          <div style="font-size:32px;font-weight:800;color:${C.textYellow};line-height:1.2;">
             ${card.nameTh || card.name}
           </div>
-          <div style="font-size:13px;color:${C.textSub};margin-top:4px;font-style:italic;">
+          <div style="font-size:16px;color:${C.textSub};margin-top:4px;font-style:italic;">
             ${card.name}
           </div>
 
           <!-- divider -->
           <div style="height:1px;background:${C.border};margin:16px 0;"></div>
 
-          <div style="font-size:13px;font-weight:700;color:${C.orange};
+          <div style="font-size:15px;font-weight:700;color:${C.orange};
                       letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">
             ✨ คำทำนาย
           </div>
@@ -363,7 +363,7 @@ const buildDailyCoverHtml = (card, category, meaning) => {
             padding:18px 20px;
             border-left:4px solid ${C.orange};
           ">
-            <p style="font-size:14px;color:${C.textWhite};line-height:2;margin:0;word-break:break-word;">
+            <p style="font-size:16px;color:${C.textWhite};line-height:2;margin:0;word-break:break-word;">
               ${meaning || '-'}
             </p>
           </div>
