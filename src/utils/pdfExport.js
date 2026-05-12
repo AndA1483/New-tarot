@@ -12,7 +12,7 @@ const renderHtmlToPdfPage = async (pdf, htmlContent, isFirstPage = false) => {
     left: -9999px;
     width: 794px;
     min-height: 1123px;
-    background: #e8e8e8;
+    background: #1e293b;
     font-family: 'Sarabun', 'Noto Sans Thai', 'Segoe UI', sans-serif;
   `;
   container.innerHTML = htmlContent;
@@ -23,7 +23,7 @@ const renderHtmlToPdfPage = async (pdf, htmlContent, isFirstPage = false) => {
       scale: 2,
       useCORS: true,
       allowTaint: true,
-      backgroundColor: '#e8e8e8',
+      backgroundColor: '#1e293b',
       logging: false,
       windowWidth: 794,
     });
@@ -40,25 +40,42 @@ const renderHtmlToPdfPage = async (pdf, htmlContent, isFirstPage = false) => {
 };
 
 // ================================================================
-// COLOR PALETTE — จากรูปที่ 3
+// COLOR PALETTE — ตรงกับ dark theme ของโปรเจค (slate-800/900)
 // ================================================================
-const P = ['#845EC2', '#2C73D2', '#0081CF', '#0089BA', '#008E9B', '#008F7A'];
-
-// สีหลักสำหรับ header (ใช้ gradient จาก P[0] → P[5])
-const HEADER_BG = `linear-gradient(135deg, ${P[0]}, ${P[2]}, ${P[5]})`;
-
 const C = {
-  pageBg:   '#e8e8e8',
-  white:    '#ffffff',
-  textDark: '#1a1a1a',
-  textGray: '#555555',
-  textLight:'#888888',
-  cardBg:   '#9e9e9e',
+  // Backgrounds
+  pageBg:     '#1e293b',   // slate-800
+  cardBg:     '#334155',   // slate-700
+  sectionBg:  '#0f172a',   // slate-900
+  inputBg:    '#475569',   // slate-600
+
+  // Accent colors (จากปุ่มในโปรเจค)
+  orange:     '#f59e0b',   // yellow-500 (ปุ่มดูดวงรายวัน)
+  orangeEnd:  '#f97316',   // orange-500
+  purple:     '#a855f7',   // purple-500 (ปุ่มดูดวงรายเดือน)
+  purpleEnd:  '#3b82f6',   // blue-500
+  green:      '#22c55e',   // green-500 (ปุ่มความหมายไพ่)
+  blue:       '#3b82f6',   // blue-500 (ปุ่มเริ่มดูดวง)
+  blueEnd:    '#1d4ed8',   // blue-700
+
+  // Text
+  textWhite:  '#f8fafc',   // slate-50
+  textSub:    '#94a3b8',   // slate-400
+  textMuted:  '#64748b',   // slate-500
+  textYellow: '#facc15',   // yellow-400
+
+  // Border
+  border:     '#334155',   // slate-700
 };
 
-// badge เลขตำแหน่ง — วนสีจาก palette
+// badge เลขตำแหน่ง — วนสีตาม accent
+const BADGE_COLORS = [
+  C.orange, C.purple, C.blue, C.green,
+  C.orangeEnd, C.purpleEnd, C.orange, C.purple, C.blue, C.green,
+];
+
 const badge = (num) => {
-  const bg = P[(num - 1) % P.length];
+  const bg = BADGE_COLORS[(num - 1) % BADGE_COLORS.length];
   return `<span style="
     display:inline-flex;align-items:center;justify-content:center;
     width:30px;height:30px;border-radius:50%;
@@ -67,11 +84,8 @@ const badge = (num) => {
   ">${num}</span>`;
 };
 
-// row สรุปไพ่ — สีพื้นหลังใช้ P วนตามลำดับ (opacity 80%)
-const rowBg = (idx) => {
-  const hex = P[idx % P.length];
-  return hex;
-};
+// row สรุปไพ่ — สลับ slate-700 / slate-800
+const rowBg = (idx) => idx % 2 === 0 ? '#334155' : '#1e293b';
 
 // ================================================================
 // TEMPLATE: หน้าปก Monthly
@@ -79,20 +93,21 @@ const rowBg = (idx) => {
 const buildMonthlyCoverHtml = (selectedCards, positionLabels, currentDate) => {
   const rows = selectedCards.map((card, idx) => {
     const pos = positionLabels[idx];
-    const bg  = rowBg(idx);
     const rev = card.isReversed
-      ? `<span style="font-size:11px;color:rgba(255,255,255,0.75);margin-left:6px;">(กลับหัว)</span>`
+      ? `<span style="background:#7f1d1d;color:#fca5a5;font-size:10px;
+                      padding:2px 7px;border-radius:10px;margin-left:6px;">กลับหัว</span>`
       : '';
     return `
       <div style="
         display:flex;align-items:center;gap:12px;
         padding:11px 16px;
-        background:${bg};
+        background:${rowBg(idx)};
         border-radius:8px;margin-bottom:5px;
+        border:1px solid ${C.border};
       ">
         ${badge(idx + 1)}
-        <span style="font-size:14px;color:#fff;flex:1;font-weight:500;">${pos.label}</span>
-        <span style="font-size:14px;color:#fff;font-weight:700;white-space:nowrap;">
+        <span style="font-size:14px;color:${C.textWhite};flex:1;font-weight:500;">${pos.label}</span>
+        <span style="font-size:14px;color:${C.textYellow};font-weight:700;white-space:nowrap;">
           ${card.nameTh}${rev}
         </span>
       </div>
@@ -104,22 +119,35 @@ const buildMonthlyCoverHtml = (selectedCards, positionLabels, currentDate) => {
       background:${C.pageBg};width:794px;min-height:1123px;
       padding:0;font-family:'Sarabun','Noto Sans Thai','Segoe UI',sans-serif;
     ">
-      <!-- HEADER -->
-      <div style="background:${HEADER_BG};padding:30px 40px 24px;text-align:center;">
-        <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.7);
+      <!-- HEADER — gradient ม่วง→น้ำเงิน เหมือนปุ่มดูดวงรายเดือน -->
+      <div style="
+        background:linear-gradient(135deg,${C.purple},${C.purpleEnd});
+        padding:30px 40px 24px;text-align:center;
+      ">
+        <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.65);
                     letter-spacing:4px;text-transform:uppercase;margin-bottom:6px;">
           MONTHLY READING
         </div>
-        <div style="font-size:36px;font-weight:800;color:#fff;">ผลดูดวงรายเดือน</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.65);margin-top:6px;">${currentDate}</div>
+        <div style="font-size:36px;font-weight:800;color:${C.textWhite};">
+          🌙 ผลดูดวงรายเดือน
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:6px;">${currentDate}</div>
       </div>
 
       <!-- CONTENT -->
       <div style="padding:24px 40px 40px;">
-        <div style="font-size:16px;font-weight:700;color:${C.textDark};margin-bottom:14px;">
-          สรุปไพ่ทั้ง 10 ใบ
+        <div style="font-size:16px;font-weight:700;color:${C.textYellow};margin-bottom:14px;">
+          📋 สรุปไพ่ทั้ง 10 ใบ
         </div>
         ${rows}
+      </div>
+
+      <!-- FOOTER -->
+      <div style="position:absolute;bottom:0;left:0;right:0;
+                  padding:10px 40px;border-top:1px solid ${C.border};
+                  display:flex;justify-content:space-between;">
+        <span style="font-size:11px;color:${C.textMuted};">🔮 New Tarot</span>
+        <span style="font-size:11px;color:${C.textMuted};">${currentDate}</span>
       </div>
     </div>
   `;
@@ -131,81 +159,112 @@ const buildMonthlyCoverHtml = (selectedCards, positionLabels, currentDate) => {
 const buildMonthlyCardHtml = (card, pos, meaning, index, total) => {
   const isReversed = card.isReversed;
   const statusText = isReversed ? 'กลับหัว' : 'ตั้งตรง';
-  // สีหัวหน้าไพ่ใช้ P วนตามลำดับ
-  const headerBg = `linear-gradient(135deg, ${P[index % P.length]}, ${P[(index + 2) % P.length]})`;
+  const statusColor = isReversed ? '#fca5a5' : '#86efac';
+
+  // header gradient วนตาม accent
+  const gradients = [
+    `linear-gradient(135deg,${C.orange},${C.orangeEnd})`,
+    `linear-gradient(135deg,${C.purple},${C.purpleEnd})`,
+    `linear-gradient(135deg,${C.blue},${C.blueEnd})`,
+    `linear-gradient(135deg,${C.green},${C.blue})`,
+    `linear-gradient(135deg,${C.orange},${C.purple})`,
+    `linear-gradient(135deg,${C.purpleEnd},${C.green})`,
+  ];
+  const headerGrad = gradients[index % gradients.length];
+  const accentColor = BADGE_COLORS[index % BADGE_COLORS.length];
 
   const imgHtml = card.image
     ? `<img src="${card.image}" crossorigin="anonymous" style="
-         width:180px;height:270px;object-fit:cover;border-radius:12px;display:block;
+         width:160px;height:240px;object-fit:cover;border-radius:12px;display:block;
+         border:2px solid ${accentColor};
          ${isReversed ? 'transform:rotate(180deg);' : ''}
        "/>`
-    : `<div style="width:180px;height:270px;background:${C.cardBg};border-radius:12px;
+    : `<div style="width:160px;height:240px;background:${C.cardBg};border-radius:12px;
+                   border:2px solid ${C.border};
                    display:flex;align-items:center;justify-content:center;font-size:48px;">🎴</div>`;
-
-  // badge หน้า (ขาวบน gradient)
-  const pageBadgeBg = P[index % P.length];
 
   return `
     <div style="
       background:${C.pageBg};width:794px;min-height:1123px;
       padding:0;font-family:'Sarabun','Noto Sans Thai','Segoe UI',sans-serif;
+      position:relative;
     ">
       <!-- HEADER BAR -->
-      <div style="
-        background:${headerBg};
-        padding:16px 24px;
-        display:flex;align-items:center;justify-content:space-between;
-      ">
+      <div style="background:${headerGrad};padding:16px 24px;
+                  display:flex;align-items:center;justify-content:space-between;">
         <div>
-          <div style="font-size:13px;color:rgba(255,255,255,0.75);font-weight:500;">
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);font-weight:600;
+                      letter-spacing:1px;text-transform:uppercase;">
             ตำแหน่งที่ ${pos.position} จาก 10
           </div>
-          <div style="font-size:22px;font-weight:800;color:#fff;margin-top:2px;">
-            ${pos.label}
+          <div style="font-size:22px;font-weight:800;color:${C.textWhite};margin-top:3px;">
+            ${pos.icon} ${pos.label}
+          </div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.65);margin-top:2px;">
+            ${pos.description}
           </div>
         </div>
         <!-- Page badge -->
-        <div style="
-          background:${C.pageBg};border-radius:8px;
-          padding:8px 14px;text-align:center;min-width:52px;
-        ">
-          <div style="font-size:22px;font-weight:800;color:${pageBadgeBg};">${index + 1}</div>
-          <div style="font-size:11px;color:${C.textGray};">/10</div>
+        <div style="background:rgba(0,0,0,0.25);border-radius:10px;
+                    padding:8px 14px;text-align:center;min-width:52px;">
+          <div style="font-size:22px;font-weight:800;color:${C.textWhite};">${index + 1}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);">/ ${total}</div>
         </div>
       </div>
 
       <!-- CARD SECTION -->
-      <div style="padding:28px 32px;display:flex;gap:28px;align-items:flex-start;">
+      <div style="padding:24px 32px;display:flex;gap:28px;align-items:flex-start;">
         <!-- รูปไพ่ -->
         <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:10px;">
           ${imgHtml}
-          <div style="font-size:13px;color:${C.textGray};text-align:center;">${statusText}</div>
-          <div style="font-size:12px;color:${C.textLight};text-align:center;">ไพ่ใบที่ ${card.id}/78</div>
+          <span style="
+            background:${isReversed ? '#7f1d1d' : '#14532d'};
+            color:${statusColor};
+            font-size:12px;padding:3px 12px;border-radius:20px;font-weight:600;
+          ">${statusText}</span>
+          <div style="font-size:11px;color:${C.textMuted};text-align:center;">
+            ไพ่ที่ ${card.id} / 78
+          </div>
         </div>
 
         <!-- ชื่อ + ความหมาย -->
         <div style="flex:1;min-width:0;">
-          <div style="font-size:28px;font-weight:800;color:${C.textDark};line-height:1.2;">
+          <div style="font-size:26px;font-weight:800;color:${C.textYellow};line-height:1.2;">
             ${card.nameTh || card.name}
           </div>
-          <div style="font-size:14px;color:${C.textGray};margin-top:4px;font-style:italic;">
+          <div style="font-size:13px;color:${C.textSub};margin-top:4px;font-style:italic;">
             ${card.name}
           </div>
 
-          <div style="font-size:14px;font-weight:700;color:${C.textDark};margin:18px 0 8px;">
-            คำทำนาย
+          <!-- divider -->
+          <div style="height:1px;background:${C.border};margin:16px 0;"></div>
+
+          <div style="font-size:13px;font-weight:700;color:${accentColor};
+                      letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">
+            ✨ คำทำนาย
           </div>
 
+          <!-- กล่องความหมาย -->
           <div style="
-            background:${C.white};border-radius:12px;
-            padding:20px 22px;
-            box-shadow:2px 2px 8px rgba(0,0,0,0.08);
+            background:${C.cardBg};border-radius:12px;
+            padding:18px 20px;
+            border-left:4px solid ${accentColor};
           ">
-            <p style="font-size:14px;color:${C.textDark};line-height:1.9;margin:0;word-break:break-word;">
+            <p style="font-size:14px;color:${C.textWhite};line-height:2;margin:0;word-break:break-word;">
               ${meaning || '-'}
             </p>
           </div>
         </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="position:absolute;bottom:0;left:0;right:0;
+                  padding:10px 32px;border-top:1px solid ${C.border};
+                  display:flex;justify-content:space-between;">
+        <span style="font-size:11px;color:${C.textMuted};">🔮 New Tarot</span>
+        <span style="font-size:11px;color:${C.textMuted};">
+          ${new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}
+        </span>
       </div>
     </div>
   `;
@@ -220,75 +279,103 @@ const buildDailyCoverHtml = (card, category, meaning) => {
   });
   const isReversed = card.isReversed;
   const statusText = isReversed ? 'กลับหัว' : 'ตั้งตรง';
+  const statusColor = isReversed ? '#fca5a5' : '#86efac';
 
   const categoryBadge = category
-    ? `<div style="margin-top:8px;">
+    ? `<div style="margin-top:10px;">
         <span style="
           display:inline-block;
-          background:rgba(255,255,255,0.2);color:#fff;
+          background:rgba(255,255,255,0.15);color:${C.textWhite};
           padding:4px 16px;border-radius:20px;
           font-size:13px;font-weight:600;
-          border:1px solid rgba(255,255,255,0.35);
+          border:1px solid rgba(255,255,255,0.3);
         ">${category.icon || ''} ${category.name}</span>
        </div>`
     : '';
 
   const imgHtml = card.image
     ? `<img src="${card.image}" crossorigin="anonymous" style="
-         width:180px;height:270px;object-fit:cover;border-radius:12px;display:block;
+         width:160px;height:240px;object-fit:cover;border-radius:12px;display:block;
+         border:2px solid ${C.orange};
          ${isReversed ? 'transform:rotate(180deg);' : ''}
        "/>`
-    : `<div style="width:180px;height:270px;background:${C.cardBg};border-radius:12px;
+    : `<div style="width:160px;height:240px;background:${C.cardBg};border-radius:12px;
+                   border:2px solid ${C.border};
                    display:flex;align-items:center;justify-content:center;font-size:48px;">🎴</div>`;
 
   return `
     <div style="
       background:${C.pageBg};width:794px;min-height:1123px;
       padding:0;font-family:'Sarabun','Noto Sans Thai','Segoe UI',sans-serif;
+      position:relative;
     ">
-      <!-- HEADER -->
-      <div style="background:${HEADER_BG};padding:30px 40px 24px;text-align:center;">
+      <!-- HEADER — gradient ส้ม→เหลือง เหมือนปุ่มดูดวงรายวัน -->
+      <div style="
+        background:linear-gradient(135deg,${C.orange},${C.orangeEnd});
+        padding:30px 40px 24px;text-align:center;
+      ">
         <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.7);
                     letter-spacing:4px;text-transform:uppercase;margin-bottom:6px;">
           DAILY READING
         </div>
-        <div style="font-size:36px;font-weight:800;color:#fff;">ผลดูดวงรายวัน</div>
+        <div style="font-size:36px;font-weight:800;color:${C.textWhite};">
+          🌅 ผลดูดวงรายวัน
+        </div>
         <div style="font-size:12px;color:rgba(255,255,255,0.65);margin-top:6px;">${currentDate}</div>
         ${categoryBadge}
       </div>
 
       <!-- CARD SECTION -->
-      <div style="padding:28px 32px;display:flex;gap:28px;align-items:flex-start;">
+      <div style="padding:24px 32px;display:flex;gap:28px;align-items:flex-start;">
         <!-- รูปไพ่ -->
         <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:10px;">
           ${imgHtml}
-          <div style="font-size:13px;color:${C.textGray};text-align:center;">${statusText}</div>
-          <div style="font-size:12px;color:${C.textLight};text-align:center;">ไพ่ใบที่ ${card.id}/78</div>
+          <span style="
+            background:${isReversed ? '#7f1d1d' : '#14532d'};
+            color:${statusColor};
+            font-size:12px;padding:3px 12px;border-radius:20px;font-weight:600;
+          ">${statusText}</span>
+          <div style="font-size:11px;color:${C.textMuted};text-align:center;">
+            ไพ่ที่ ${card.id} / 78
+          </div>
         </div>
 
         <!-- ชื่อ + ความหมาย -->
         <div style="flex:1;min-width:0;">
-          <div style="font-size:28px;font-weight:800;color:${C.textDark};line-height:1.2;">
+          <div style="font-size:26px;font-weight:800;color:${C.textYellow};line-height:1.2;">
             ${card.nameTh || card.name}
           </div>
-          <div style="font-size:14px;color:${C.textGray};margin-top:4px;font-style:italic;">
+          <div style="font-size:13px;color:${C.textSub};margin-top:4px;font-style:italic;">
             ${card.name}
           </div>
 
-          <div style="font-size:14px;font-weight:700;color:${C.textDark};margin:18px 0 8px;">
-            คำทำนาย
+          <!-- divider -->
+          <div style="height:1px;background:${C.border};margin:16px 0;"></div>
+
+          <div style="font-size:13px;font-weight:700;color:${C.orange};
+                      letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">
+            ✨ คำทำนาย
           </div>
 
+          <!-- กล่องความหมาย -->
           <div style="
-            background:${C.white};border-radius:12px;
-            padding:20px 22px;
-            box-shadow:2px 2px 8px rgba(0,0,0,0.08);
+            background:${C.cardBg};border-radius:12px;
+            padding:18px 20px;
+            border-left:4px solid ${C.orange};
           ">
-            <p style="font-size:14px;color:${C.textDark};line-height:1.9;margin:0;word-break:break-word;">
+            <p style="font-size:14px;color:${C.textWhite};line-height:2;margin:0;word-break:break-word;">
               ${meaning || '-'}
             </p>
           </div>
         </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="position:absolute;bottom:0;left:0;right:0;
+                  padding:10px 32px;border-top:1px solid ${C.border};
+                  display:flex;justify-content:space-between;">
+        <span style="font-size:11px;color:${C.textMuted};">🔮 New Tarot</span>
+        <span style="font-size:11px;color:${C.textMuted};">${currentDate}</span>
       </div>
     </div>
   `;
